@@ -47,7 +47,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:va
 .steam:nth-of-type(2){animation-delay:.8s}
 @keyframes rise{0%,100%{opacity:.25;transform:translateY(6px)}50%{opacity:.9;transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){.steam{animation:none;opacity:.6}html{scroll-behavior:auto}}
-.herologo{width:110px;height:110px;object-fit:contain;flex:none;animation:floaty 4s ease-in-out infinite,fadein 1.2s ease-out both;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
+.herologo{flex:1 1 0;min-width:0;max-width:320px;width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;animation:floaty 4s ease-in-out infinite,fadein 1.2s ease-out both;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
 @keyframes floaty{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-16px) rotate(3deg)}}
 @keyframes fadein{from{opacity:0;transform:scale(.6)}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.herologo{animation:none}}
@@ -100,13 +100,13 @@ footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px 
 #toast.on{opacity:1;transform:translate(-50%,0)}
 @media (max-width:820px){
 .hero .wrap,.ogrid{grid-template-columns:1fr}.about{grid-template-columns:1fr}
-.art{order:-1}.art svg{max-width:240px}.nav ul{display:none}section{padding:52px 0}.herologo{width:80px;height:80px}}
+.art{order:-1}.art svg{max-width:240px}.nav ul{display:none}section{padding:52px 0}.herologo{max-width:240px}}
 </style>
 </head>
 <body>
 <header>
 <div class="wrap nav">
-<a class="logo" href="#home" aria-label="F &amp; W Coffee"><img src="https://ik.imagekit.io/vjlvspano/F&W/logo%202.jfif" alt="F &amp; W Coffee logo" onerror="this.style.display='none'"><span>F &amp; W Coffee</span></a>
+<a class="logo" href="#home" aria-label="F &amp; W Coffee"><img src="https://ik.imagekit.io/vjlvspano/F&W/logo_2-removebg-preview.png" alt="F &amp; W Coffee logo" onerror="this.style.display='none'"><span>F &amp; W Coffee</span></a>
 <ul>
 <li><a href="#home">ပင်မ</a></li><li><a href="#products">ကော်ဖီများ</a></li><li><a href="#about">ကျွန်ုပ်တို့အကြောင်း</a></li><li><a href="#order">မှာယူရန်</a></li>
 </ul>
@@ -126,7 +126,7 @@ footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px 
 <div class="btns"><a class="btn" href="#products">ယခုဝယ်ယူရန်</a><a class="btn alt" href="#about">ပိုမိုသိရှိရန်</a></div>
 </div>
 <div class="art">
-<img class="herologo" src="https://ik.imagekit.io/vjlvspano/F&W/logo%202.jfif" alt="F &amp; W Coffee logo" onerror="this.style.display='none'">
+<img class="herologo" src="https://ik.imagekit.io/vjlvspano/F&W/logo_2-removebg-preview.png" alt="F &amp; W Coffee logo" onerror="this.style.display='none'">
 <svg viewBox="0 0 320 300" role="img" aria-label="ဗီယက်နမ် ဖင်ကော်ဖီ ခွက်">
 <path class="steam" d="M120 70c-14-18 14-30 0-52" stroke="#f3c77a" stroke-width="5" fill="none" stroke-linecap="round"/>
 <path class="steam" d="M160 76c-14-18 14-30 0-52" stroke="#f3c77a" stroke-width="5" fill="none" stroke-linecap="round"/>
