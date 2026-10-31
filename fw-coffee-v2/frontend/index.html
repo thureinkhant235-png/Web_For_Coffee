@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>F & W Coffee – ဗီယက်နမ်ကော်ဖီစစ်စစ်</title>
+<title>F &amp; W Coffee – ဗီယက်နမ်ကော်ဖီစစ်စစ်</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
@@ -32,8 +32,9 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:va
 :root[data-theme="dark"] .cartbtn,:root:not([data-theme="light"]) .cartbtn{color:#1a100b}
 .badge{position:absolute;top:-4px;right:-4px;background:var(--gold);color:#2a1a12;font-size:12px;font-weight:700;min-width:21px;height:21px;border-radius:99px;display:grid;place-items:center;line-height:1}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-weight:700;padding:13px 28px;border-radius:999px;background:var(--gold);color:#2a1a12;text-decoration:none}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-weight:700;padding:13px 28px;border-radius:999px;background:var(--gold);color:#2a1a12;text-decoration:none;text-align:center}
 .btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.55;cursor:default;filter:none}
 .btn.alt{background:transparent;color:inherit;border:2px solid currentColor}
 /* hero */
 .hero{background:var(--hero);color:var(--hero-ink);padding:64px 0;overflow:hidden}
@@ -60,13 +61,16 @@ h2{font-size:clamp(24px,3.5vw,34px);color:var(--brand);margin-bottom:10px}
 .about p{margin:0;color:var(--muted)}
 /* products */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+.grid .msg{grid-column:1/-1;margin:0;text-align:center;color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.card.out .img{opacity:.45}
 .card .img{aspect-ratio:1/.85;display:grid;place-items:center}
 .card .img svg{width:62%;height:auto}
 .card .body{padding:18px;display:flex;flex-direction:column;gap:6px;flex:1}
 .card h3{font-size:17px}
 .card p{margin:0;color:var(--muted);font-size:14px;flex:1}
 .price{font-weight:700;color:var(--brand);font-size:18px}
+.left{font-size:13px;color:#b3402a;margin:0}
 .card .btn{width:100%;margin-top:8px;padding:11px}
 /* cart */
 .overlay{position:fixed;inset:0;background:rgba(20,10,5,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:80}
@@ -96,8 +100,14 @@ input,select,textarea{font:inherit;padding:12px 14px;border-radius:10px;border:1
 .fb{background:#0a7cff}.vb{background:#7360f2}.tel{background:#2f7d4f}
 .sum{color:var(--muted);font-size:14px;margin:0}
 footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px calc(26px + env(safe-area-inset-bottom,0px));font-size:14px}
-#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--hero);color:#f3c77a;padding:12px 20px;border-radius:99px;opacity:0;transition:.3s;z-index:100;pointer-events:none}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--hero);color:#f3c77a;padding:12px 20px;border-radius:99px;opacity:0;transition:.3s;z-index:200;pointer-events:none;max-width:92vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+/* order-done dialog */
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);padding:26px;width:min(420px,92vw)}
+dialog::backdrop{background:rgba(20,10,5,.6)}
+dialog h3{color:var(--brand);margin-bottom:8px}
+dialog p{margin:0 0 18px;color:var(--muted)}
+.doneBtns{display:grid;gap:10px}
 @media (max-width:820px){
 .hero .wrap,.ogrid{grid-template-columns:1fr}.about{grid-template-columns:1fr}
 .art{order:-1}.art svg{max-width:240px}.nav ul{display:none}section{padding:52px 0}.herologo{max-width:240px}}
@@ -159,7 +169,7 @@ footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px 
 <div class="wrap">
 <h2>ကျွန်ုပ်တို့၏ ကော်ဖီများ</h2>
 <p class="lead">သင့်အရသာနှင့် အသုံးပြုပုံနှင့် ကိုက်ညီသော ကော်ဖီကို ရွေးပါ။</p>
-<div class="grid" id="grid"></div>
+<div class="grid" id="grid" aria-live="polite"></div>
 </div>
 </section>
 
@@ -167,15 +177,15 @@ footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px 
 <div class="wrap ogrid">
 <div>
 <h2>မှာယူရန်</h2>
-<p class="lead" style="margin-bottom:20px">အချက်အလက်ဖြည့်ပြီး Viber မှတစ်ဆင့် အော်ဒါပို့ပါ။ ဈေးခြင်းထဲမှ ပစ္စည်းများ အလိုအလျောက် ပါဝင်ပါမည်။</p>
+<p class="lead" style="margin-bottom:20px">အချက်အလက်ဖြည့်ပြီး အော်ဒါတင်ပါ။ ဈေးခြင်းထဲမှ ပစ္စည်းများ အလိုအလျောက် ပါဝင်ပါမည်။ ကျွန်ုပ်တို့ ဖုန်းဖြင့် ပြန်လည်ဆက်သွယ်ပါမည်။</p>
 <form id="form">
-<label>အမည်<input name="name" required autocomplete="name"></label>
-<label>ဖုန်းနံပါတ်<input name="phone" type="tel" required autocomplete="tel" placeholder="09 xxx xxx xxx"></label>
-<label>လိပ်စာ<textarea name="addr" rows="3" required autocomplete="street-address"></textarea></label>
+<label>အမည်<input name="name" required maxlength="100" autocomplete="name"></label>
+<label>ဖုန်းနံပါတ်<input name="phone" type="tel" required minlength="5" maxlength="40" autocomplete="tel" placeholder="09 xxx xxx xxx"></label>
+<label>လိပ်စာ<textarea name="addr" rows="3" required maxlength="500" autocomplete="street-address"></textarea></label>
 <label>ငွေပေးချေမှုနည်းလမ်း
 <select name="pay"><option>ပစ္စည်းရောက်မှ ငွေချေ (COD)</option><option>KBZPay</option><option>Wave Pay</option><option>ဘဏ်လွှဲ</option></select></label>
 <p class="sum" id="sum"></p>
-<button class="btn" type="submit">Viber ဖြင့် အော်ဒါပို့ရန်</button>
+<button class="btn" type="submit" id="submit">အော်ဒါတင်ရန်</button>
 </form>
 </div>
 <div class="contact">
@@ -196,59 +206,128 @@ footer{background:var(--hero);color:#cdb89c;text-align:center;padding:26px 20px 
 <div id="items"></div>
 <div class="cfoot">
 <div class="total"><span>စုစုပေါင်း</span><span id="total">0 Ks</span></div>
-<button class="btn" id="checkout">Messenger / Viber ဖြင့် မှာယူရန်</button>
+<button class="btn" id="checkout">မှာယူရန် ဆက်လုပ်ရန်</button>
 </div>
 </aside>
+
+<dialog id="done" aria-labelledby="doneTitle">
+<h3 id="doneTitle">အော်ဒါ လက်ခံပြီးပါပြီ ✓</h3>
+<p id="doneMsg"></p>
+<div class="doneBtns">
+<a class="btn" id="doneViber" href="#">Viber ဖြင့် ထပ်မံအတည်ပြုရန်</a>
+<button class="btn alt" id="doneClose" type="button">ပိတ်ရန်</button>
+</div>
+</dialog>
 <div id="toast" role="status"></div>
 
+<script src="config.js"></script>
 <script>
 // ဤနေရာတွင် သင့်ကိုယ်ပိုင် အချက်အလက်များ ပြင်ထည့်ပါ
 const PHONE="959000000000", FB_PAGE="mrvietcoffee";
-const PRODUCTS=[
-{id:1,name:"Mr Viet Ground Coffee – Good Morning",desc:"နံနက်ခင်းအတွက် ညီညာသော အရသာ၊ ဖင်ဖစ်တာအတွက် ကြိတ်ပြီးသား (၅၀၀ ဂရမ်)",price:14000,c1:"#7a3f1d",c2:"#e0a648"},
-{id:2,name:"Mr Viet Ground Coffee – Dalat Blend",desc:"ဒါလတ်ကုန်းမြင့်မှ ရွေးထားသော ရောစပ်ကော်ဖီ၊ ရနံ့မွှေးပြီး ကိုယ်ထည်ပြည့်ဝ (၅၀၀ ဂရမ်)",price:17000,c1:"#3d2214",c2:"#c98a2b"},
-{id:3,name:"Mr Viet Whole Bean – Arabica / Robusta",desc:"ကော်ဖီစေ့အပြည့်၊ ကိုယ်တိုင်ကြိတ်သောက်ရန် (၁ ကီလို)",price:32000,c1:"#2a1710",c2:"#b8742e"},
-{id:4,name:"Mr Viet 3-in-1 Instant Coffee",desc:"ကော်ဖီ၊ ဆီးနှင့် သကြား ပါပြီးသား၊ ရေနွေးထည့်ရုံဖြင့် အဆင်သင့် (၂၀ ဆာချေ)",price:9000,c1:"#a8541c",c2:"#f3c77a"}
-];
+const API=(window.FW_API||"").replace(/\/+$/,"");
+
 const $=s=>document.querySelector(s);
-const fmt=n=>n.toLocaleString("en-US")+" Ks";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Number(n).toLocaleString("en-US")+" Ks";
+const MAXQ=99;
+let PRODUCTS=[];
 let cart={};
 try{cart=JSON.parse(localStorage.getItem("mvcart")||"{}")||{}}catch(e){cart={}}
 const save=()=>{try{localStorage.setItem("mvcart",JSON.stringify(cart))}catch(e){}};
-const pack=p=>`<svg viewBox="0 0 120 150"><path d="M20 22h80l8 118H12z" fill="${p.c1}"/><path d="M20 22h80l-4 24H24z" fill="${p.c2}"/><rect x="34" y="62" width="52" height="46" rx="6" fill="#f7efe2" opacity=".92"/><text x="60" y="82" text-anchor="middle" font-size="11" font-weight="800" fill="${p.c1}" font-family="Georgia,serif">Mr Viet</text><text x="60" y="98" text-anchor="middle" font-size="8" fill="${p.c1}" font-family="Georgia,serif">COFFEE</text></svg>`;
-$("#grid").innerHTML=PRODUCTS.map(p=>`<article class="card"><div class="img" style="background:linear-gradient(145deg,${p.c2}55,${p.c1}33)">${pack(p)}</div><div class="body"><h3>${p.name}</h3><p>${p.desc}</p><div class="price">${fmt(p.price)}</div><button class="btn" data-add="${p.id}">ဈေးခြင်းထဲထည့်ရန်</button></div></article>`).join("");
-function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1800)}
-function total(){return Object.entries(cart).reduce((s,[id,q])=>s+q*PRODUCTS.find(p=>p.id==id).price,0)}
-function lines(){return Object.entries(cart).map(([id,q])=>{const p=PRODUCTS.find(p=>p.id==id);return `• ${p.name} × ${q} = ${fmt(p.price*q)}`}).join("\n")}
+const find=id=>PRODUCTS.find(p=>p.id==id);
+const cap=p=>Math.min(MAXQ,p.stock);
+
+async function api(path,opt={}){
+let r;
+try{r=await fetch(API+path,{method:opt.method||"GET",headers:opt.body?{"Content-Type":"application/json"}:undefined,body:opt.body?JSON.stringify(opt.body):undefined})}
+catch(e){const x=new Error("network");x.status=0;throw x}
+const d=await r.json().catch(()=>({}));
+if(!r.ok){const x=new Error(d.error||"error");x.status=r.status;throw x}
+return d}
+
+const pack=p=>`<svg viewBox="0 0 120 150" aria-hidden="true"><path d="M20 22h80l8 118H12z" fill="${esc(p.c1)}"/><path d="M20 22h80l-4 24H24z" fill="${esc(p.c2)}"/><rect x="34" y="62" width="52" height="46" rx="6" fill="#f7efe2" opacity=".92"/><text x="60" y="82" text-anchor="middle" font-size="11" font-weight="800" fill="${esc(p.c1)}" font-family="Georgia,serif">Mr Viet</text><text x="60" y="98" text-anchor="middle" font-size="8" fill="${esc(p.c1)}" font-family="Georgia,serif">COFFEE</text></svg>`;
+
+function renderGrid(){
+$("#grid").innerHTML=PRODUCTS.length?PRODUCTS.map(p=>{
+const out=p.stock<1;
+return `<article class="card ${out?"out":""}"><div class="img" style="background:linear-gradient(145deg,${esc(p.c2)}55,${esc(p.c1)}33)">${pack(p)}</div><div class="body"><h3>${esc(p.name)}</h3><p>${esc(p.descr)}</p><div class="price">${fmt(p.price)}</div>${!out&&p.stock<=5?`<p class="left">လက်ကျန် ${p.stock} ခုသာ ကျန်ပါတော့သည်</p>`:""}<button class="btn" data-add="${p.id}" ${out?"disabled":""}>${out?"ကုန်သွားပါပြီ":"ဈေးခြင်းထဲထည့်ရန်"}</button></div></article>`}).join(""):`<p class="msg">လောလောဆယ် ရောင်းချရန် ကော်ဖီ မရှိသေးပါ။</p>`}
+
+// Drop cart lines that are gone / sold out, and trim quantities to the stock we have.
+function reconcile(){
+for(const id of Object.keys(cart)){const p=find(id);
+if(!p||p.stock<1)delete cart[id];else if(cart[id]>cap(p))cart[id]=cap(p)}}
+
+async function loadProducts(){
+const grid=$("#grid");
+grid.innerHTML=`<p class="msg">ကော်ဖီများ ရယူနေပါသည်…</p>`;
+const slow=setTimeout(()=>{if(!PRODUCTS.length)grid.innerHTML=`<p class="msg">ဆာဗာ နိုးထလာနေပါသည်၊ ခဏစောင့်ပါ (စက္ကန့် ၃၀ ခန့်)…</p>`},4000);
+try{PRODUCTS=await api("/api/products");reconcile();renderGrid();render()}
+catch(e){grid.innerHTML=`<p class="msg">ကော်ဖီစာရင်း ရယူ၍ မရပါ။ <button class="btn" style="padding:8px 18px;margin-left:8px" data-retry>ပြန်ကြိုးစားရန်</button></p>`}
+finally{clearTimeout(slow)}}
+
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2600)}
+function total(){return Object.entries(cart).reduce((s,[id,q])=>{const p=find(id);return s+(p?q*p.price:0)},0)}
+function lines(){return Object.entries(cart).map(([id,q])=>{const p=find(id);return p?`• ${p.name} × ${q} = ${fmt(p.price*q)}`:""}).filter(Boolean).join("\n")}
 function render(){
 const n=Object.values(cart).reduce((a,b)=>a+b,0);
 $("#count").textContent=n;$("#total").textContent=fmt(total());
 $("#sum").textContent=n?`ဈေးခြင်း – ပစ္စည်း ${n} ခု၊ စုစုပေါင်း ${fmt(total())}`:"ဈေးခြင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။";
-$("#items").innerHTML=n?Object.entries(cart).map(([id,q])=>{const p=PRODUCTS.find(p=>p.id==id);return `<div class="row"><b>${p.name}</b><span class="price">${fmt(p.price*q)}</span><div class="qty"><button data-dec="${id}" aria-label="လျှော့ရန်">−</button><span>${q}</span><button data-inc="${id}" aria-label="တိုးရန်">+</button></div><button class="rm" data-rm="${id}">ဖယ်ရှားရန်</button></div>`}).join(""):`<p class="empty">ဈေးခြင်း ဗလာဖြစ်နေပါသည်။<br>ကော်ဖီတစ်မျိုးမျိုး ထည့်ကြည့်ပါ။</p>`;
+$("#items").innerHTML=n?Object.entries(cart).map(([id,q])=>{const p=find(id);if(!p)return"";return `<div class="row"><b>${esc(p.name)}</b><span class="price">${fmt(p.price*q)}</span><div class="qty"><button data-dec="${id}" aria-label="လျှော့ရန်">−</button><span>${q}</span><button data-inc="${id}" aria-label="တိုးရန်">+</button></div><button class="rm" data-rm="${id}">ဖယ်ရှားရန်</button></div>`}).join(""):`<p class="empty">ဈေးခြင်း ဗလာဖြစ်နေပါသည်။<br>ကော်ဖီတစ်မျိုးမျိုး ထည့်ကြည့်ပါ။</p>`;
 save()}
 function cartOpen(o){$("#cart").classList.toggle("on",o);$("#ov").classList.toggle("on",o)}
+
 document.addEventListener("click",e=>{
+if(e.target.closest("[data-retry]"))return loadProducts();
 const t=e.target.closest("[data-add],[data-inc],[data-dec],[data-rm]");if(!t)return;
 const d=t.dataset;
-if(d.add){cart[d.add]=(cart[d.add]||0)+1;toast("ဈေးခြင်းထဲ ထည့်ပြီးပါပြီ")}
-if(d.inc)cart[d.inc]++;
-if(d.dec){cart[d.dec]--;if(cart[d.dec]<1)delete cart[d.dec]}
-if(d.rm)delete cart[d.rm];
+const id=d.add||d.inc||d.dec||d.rm,p=find(id);
+if(d.add||d.inc){
+if(!p)return;
+if((cart[id]||0)>=cap(p)){toast("လက်ကျန် ဤမျှသာ ရှိပါသည်");return}
+cart[id]=(cart[id]||0)+1;if(d.add)toast("ဈေးခြင်းထဲ ထည့်ပြီးပါပြီ")}
+if(d.dec){cart[id]--;if(cart[id]<1)delete cart[id]}
+if(d.rm)delete cart[id];
 render()});
 $("#openCart").onclick=()=>cartOpen(true);
 $("#closeCart").onclick=$("#ov").onclick=()=>cartOpen(false);
 document.addEventListener("keydown",e=>{if(e.key==="Escape")cartOpen(false)});
-function send(extra){
-if(!Object.keys(cart).length){toast("ဈေးခြင်းထဲ ပစ္စည်းထည့်ပါ");cartOpen(true);return false}
-const msg=`Mr Viet Coffee အော်ဒါ\n${lines()}\nစုစုပေါင်း: ${fmt(total())}${extra||""}`;
-window.open("viber://forward?text="+encodeURIComponent(msg),"_self");
-try{navigator.clipboard.writeText(msg)}catch(e){}
-toast("အော်ဒါစာကို ကူးယူပြီးပါပြီ");return true}
-$("#checkout").onclick=()=>send();
-$("#form").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);
-send(`\nအမည်: ${f.get("name")}\nဖုန်း: ${f.get("phone")}\nလိပ်စာ: ${f.get("addr")}\nငွေပေးချေမှု: ${f.get("pay")}`)};
+
+$("#checkout").onclick=()=>{
+if(!Object.keys(cart).length){toast("ဈေးခြင်းထဲ ပစ္စည်းထည့်ပါ");return}
+cartOpen(false);$("#order").scrollIntoView({behavior:"smooth"});setTimeout(()=>$("#form [name=name]").focus({preventScroll:true}),600)};
+
+const errText=e=>e.status===0?"ချိတ်ဆက်၍ မရပါ၊ ခဏနေပြီး ပြန်ကြိုးစားပါ"
+:e.status===409?"ပစ္စည်း လက်ကျန် မလုံလောက်ပါ၊ ဈေးခြင်းကို ပြန်စစ်ပါ"
+:e.status===429?"ကြိမ်ရေ များလွန်းပါသည်၊ ခဏနေမှ ပြန်ကြိုးစားပါ"
+:e.status===400?"အချက်အလက်များကို ပြန်စစ်ပါ":"အမှားတစ်ခု ဖြစ်ပွားပါသည်၊ ပြန်ကြိုးစားပါ";
+
+let submitting=false;
+$("#form").onsubmit=async e=>{
+e.preventDefault();
+if(submitting)return;
+if(!Object.keys(cart).length){toast("ဈေးခြင်းထဲ ပစ္စည်းထည့်ပါ");cartOpen(true);return}
+const form=e.target,f=new FormData(form);
+const body={name:f.get("name"),phone:f.get("phone"),addr:f.get("addr"),pay:f.get("pay"),
+items:Object.entries(cart).map(([id,qty])=>({id:Number(id),qty}))};
+const summary=lines(),sumTotal=total();
+submitting=true;const btn=$("#submit");btn.disabled=true;btn.textContent="တင်နေပါသည်…";
+try{
+const r=await api("/api/orders",{method:"POST",body});
+const msg=`Mr Viet Coffee အော်ဒါ #${r.id}\n${summary}\nစုစုပေါင်း: ${fmt(r.total)}\nအမည်: ${body.name}\nဖုန်း: ${body.phone}\nလိပ်စာ: ${body.addr}\nငွေပေးချေမှု: ${body.pay}`;
+cart={};render();form.reset();
+$("#doneMsg").textContent=`အော်ဒါနံပါတ် #${r.id} (${fmt(r.total)}) ကို လက်ခံရရှိပါပြီ။ ကျွန်ုပ်တို့ ဖုန်းဖြင့် မကြာမီ ဆက်သွယ်ပါမည်။`;
+$("#doneViber").href="viber://forward?text="+encodeURIComponent(msg);
+$("#done").showModal();
+loadProducts();
+}catch(err){
+toast(errText(err));
+if(err.status===409)loadProducts();
+}finally{submitting=false;btn.disabled=false;btn.textContent="အော်ဒါတင်ရန်"}};
+$("#doneClose").onclick=()=>$("#done").close();
+
 $("#fb").href="https://m.me/"+FB_PAGE;$("#vb").href="viber://chat?number=%2B"+PHONE;$("#tel").href="tel:+"+PHONE;
 render();
+loadProducts();
 </script>
 </body>
 </html>

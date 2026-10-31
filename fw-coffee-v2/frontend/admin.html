@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>F &amp; W Coffee – Admin</title>
+<style>
+:root{--bg:#f7efe2;--surface:#fffbf4;--ink:#2a1a12;--muted:#6f5848;--brand:#4a2a1a;--gold:#c98a2b;--line:#e4d3bb;--red:#b3402a;--green:#2f7d4f;--blue:#2a6fb3}
+@media (prefers-color-scheme:dark){:root{--bg:#1a100b;--surface:#26170f;--ink:#f3e6d2;--muted:#bfa68c;--brand:#e2b15c;--gold:#d99a3a;--line:#3d2a1e;--red:#e0745f;--green:#5fbf88;--blue:#6fb0ee}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Myanmar",sans-serif}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);width:100%}
+.btn{border:0;border-radius:8px;padding:9px 16px;background:var(--gold);color:#2a1a12;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:20px}
+#login form{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px;width:min(360px,100%);display:grid;gap:14px}
+#login h1{margin:0;font-size:22px;color:var(--brand)}
+.err{color:var(--red);font-size:14px;margin:0;min-height:1.3em}
+/* shell */
+header{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.bar{max-width:1100px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:14px;height:56px}
+.bar h1{margin:0;font-size:18px;color:var(--brand);margin-right:auto;white-space:nowrap}
+.tabs{display:flex;gap:4px}
+.tab{border:0;background:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab[aria-selected=true]{background:var(--brand);color:var(--surface)}
+@media (prefers-color-scheme:dark){.tab[aria-selected=true]{color:#1a100b}}
+.pill{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:99px;background:var(--gold);color:#2a1a12;font-size:12px;line-height:20px;text-align:center}
+main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat small{color:var(--muted);display:block}
+.stat b{font-size:20px;color:var(--brand)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.tools input{flex:1 1 200px;width:auto}.tools select{width:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card.new{border-left:5px solid var(--gold)}
+.top{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;justify-content:space-between}
+.muted{color:var(--muted);font-size:13px}
+.st{font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+.st.New{color:var(--blue)}.st.Confirmed{color:var(--gold)}.st.Delivered{color:var(--green)}.st.Cancelled{color:var(--red)}
+.items{margin:10px 0;padding:0;list-style:none;font-size:14px}
+.items li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.act select{width:auto}
+.note{margin-top:8px;display:flex;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
+.grid label{font-size:12px;color:var(--muted);display:grid;gap:3px}
+.grid .wide{grid-column:1/-1}
+.grid input[type=color]{padding:2px;height:38px}
+.stock{display:flex;gap:6px;align-items:center}
+.stock input{text-align:center}
+.low{color:var(--red);font-weight:700}
+.off{opacity:.6}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--brand);color:var(--surface);padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+#toast.on{opacity:1}
+@media (prefers-color-scheme:dark){#toast{color:#1a100b}}
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <form id="loginForm">
+    <h1>F &amp; W Coffee – Admin</h1>
+    <label>Password<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
+    <p class="err" id="loginErr" role="alert"></p>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="bar">
+      <h1>F &amp; W Coffee</h1>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-tab="orders">Orders<span class="pill" id="newCount" hidden>0</span></button>
+        <button class="tab" role="tab" id="tab-inv" aria-selected="false" data-tab="inv">Inventory<span class="pill" id="lowCount" hidden>0</span></button>
+      </div>
+      <button class="btn ghost sm" id="logout">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stats" id="stats"></div>
+
+    <!-- ORDERS -->
+    <section id="orders" role="tabpanel" aria-labelledby="tab-orders">
+      <div class="tools">
+        <input id="search" type="search" placeholder="Search name, phone, address or order #">
+        <select id="statusFilter" aria-label="Filter by status">
+          <option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option>
+        </select>
+        <button class="btn ghost sm" id="refresh">Refresh</button>
+        <button class="btn ghost sm" id="export">Export CSV</button>
+      </div>
+      <div id="orderList"></div>
+      <div style="text-align:center"><button class="btn ghost" id="more" hidden>Load more</button></div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section id="inv" role="tabpanel" aria-labelledby="tab-inv" hidden>
+      <div class="tools">
+        <button class="btn" id="addProduct">+ New product</button>
+        <span class="muted" id="lowHint"></span>
+      </div>
+      <div id="prodList"></div>
+    </section>
+  </main>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script>
+const API = (window.FW_API || "").replace(/\/+$/, "");
+const TOKEN_KEY = "fwAdminToken";
+const getToken = () => { try { return sessionStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } };
+const setToken = t => { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch {} };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ks = n => Number(n).toLocaleString("en-US") + " Ks";
+const when = iso => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+const STATUSES = ["New", "Confirmed", "Delivered", "Cancelled"];
+let LOW = 10, products = [], orders = [], ordersTotal = 0;
+
+function toast(t) {
+  const e = $("#toast"); e.textContent = t; e.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 2600);
+}
+async function api(path, opt = {}) {
+  const headers = {};
+  if (opt.body) headers["Content-Type"] = "application/json";
+  if (getToken()) headers.Authorization = "Bearer " + getToken();
+  let r;
+  try {
+    r = await fetch(API + "/api" + path, {
+      method: opt.method || "GET", headers,
+      body: opt.body ? JSON.stringify(opt.body) : undefined
+    });
+  } catch { throw new Error("Cannot reach the server. If it was idle, wait ~30 seconds and try again."); }
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== "/admin/login") { setToken(""); showLogin(); throw new Error("Please sign in"); }
+  if (!r.ok) throw new Error(data.error || "Something went wrong");
+  return data;
+}
+const run = async fn => { try { return await fn(); } catch (e) { toast(e.message); } };
+
+/* ---------- auth ---------- */
+function showLogin() { $("#app").hidden = true; $("#login").hidden = false; $("#pw").focus(); }
+async function showApp() { $("#login").hidden = true; $("#app").hidden = false; await run(refreshAll); }
+$("#loginForm").onsubmit = async e => {
+  e.preventDefault(); $("#loginErr").textContent = "";
+  const btn = e.target.querySelector("button"); btn.disabled = true;
+  try {
+    const d = await api("/admin/login", { method: "POST", body: { password: $("#pw").value } });
+    setToken(d.token); $("#pw").value = ""; showApp();
+  } catch (err) { $("#loginErr").textContent = err.message; }
+  finally { btn.disabled = false; }
+};
+$("#logout").onclick = () => { setToken(""); showLogin(); };
+
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t === b));
+  $("#orders").hidden = b.dataset.tab !== "orders"; $("#inv").hidden = b.dataset.tab !== "inv";
+});
+
+/* ---------- stats ---------- */
+async function loadStats() {
+  const s = await api("/admin/stats"); LOW = s.lowStockLevel;
+  $("#stats").innerHTML = [
+    ["New orders", s.counts.New], ["Today", s.todayOrders + " orders"], ["Today's sales", ks(s.todayRevenue)],
+    ["Total sales", ks(s.revenue)], ["Low stock", s.lowStock]
+  ].map(([k, v]) => `<div class="stat"><small>${k}</small><b>${esc(v)}</b></div>`).join("");
+  $("#newCount").textContent = s.counts.New; $("#newCount").hidden = !s.counts.New;
+  $("#lowCount").textContent = s.lowStock; $("#lowCount").hidden = !s.lowStock;
+  $("#lowHint").textContent = `Low stock = ${LOW} or fewer`;
+}
+
+/* ---------- orders ---------- */
+const qs = off => new URLSearchParams({ status: $("#statusFilter").value, q: $("#search").value.trim(), limit: 50, offset: off });
+async function loadOrders(append = false) {
+  const off = append ? orders.length : 0;
+  const d = await api("/admin/orders?" + qs(off));
+  orders = append ? orders.concat(d.rows) : d.rows; ordersTotal = d.total;
+  renderOrders();
+}
+function renderOrders() {
+  $("#orderList").innerHTML = orders.length ? orders.map(o => `
+    <article class="card ${o.status === "New" ? "new" : ""}" data-oid="${o.id}">
+      <div class="top"><div><b>#${o.id}</b> · ${esc(o.name)} · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div>
+        <div><span class="st ${o.status}">${o.status}</span> <span class="muted">${when(o.created_at)}</span></div></div>
+      <div class="muted">${esc(o.addr)} · Pay: ${esc(o.pay)}</div>
+      <ul class="items">${o.items.map(i => `<li><span>${esc(i.name)} × ${i.qty}</span><span>${ks(i.price * i.qty)}</span></li>`).join("")}
+        <li><b>Total</b><b>${ks(o.total)}</b></li></ul>
+      <div class="act"><label class="muted">Status
+        <select data-status>${STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
+      <div class="note"><input data-note maxlength="500" placeholder="Private note" value="${esc(o.note)}"><button class="btn ghost sm" data-savenote>Save note</button></div>
+    </article>`).join("") : `<p class="muted">No orders found.</p>`;
+  $("#more").hidden = orders.length >= ordersTotal;
+}
+$("#orderList").addEventListener("change", e => {
+  if (!e.target.matches("[data-status]")) return;
+  const id = e.target.closest("[data-oid]").dataset.oid;
+  run(async () => { await api("/admin/orders/" + id, { method: "PATCH", body: { status: e.target.value } }); toast("Order updated"); })
+    .finally(() => Promise.all([loadOrders(), loadStats(), loadProducts()]).catch(() => {}));
+});
+$("#orderList").addEventListener("click", e => {
+  if (!e.target.matches("[data-savenote]")) return;
+  const card = e.target.closest("[data-oid]");
+  run(async () => { await api("/admin/orders/" + card.dataset.oid, { method: "PATCH", body: { note: card.querySelector("[data-note]").value } }); toast("Note saved"); });
+});
+$("#more").onclick = () => run(() => loadOrders(true));
+$("#refresh").onclick = () => run(refreshAll);
+$("#statusFilter").onchange = () => run(() => loadOrders());
+let st; $("#search").oninput = () => { clearTimeout(st); st = setTimeout(() => run(() => loadOrders()), 300); };
+$("#export").onclick = () => run(async () => {
+  const r = await fetch(API + "/api/admin/orders.csv", { headers: { Authorization: "Bearer " + getToken() } });
+  if (r.status === 401) { setToken(""); showLogin(); throw new Error("Please sign in"); }
+  if (!r.ok) throw new Error("Export failed");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(await r.blob());
+  a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+
+/* ---------- inventory ---------- */
+async function loadProducts() { products = await api("/admin/products"); renderProducts(); }
+function prodCard(p) {
+  const isNew = !p.id, low = !isNew && p.active && p.stock <= LOW;
+  return `<article class="card ${p.active ? "" : "off"}" data-pid="${p.id || ""}">
+    <div class="top"><b>${isNew ? "New product" : "#" + p.id}</b>
+      <span class="muted">${low ? '<span class="low">Low stock</span> · ' : ""}${p.active ? "Visible in shop" : "Hidden from shop"}</span></div>
+    <div class="grid">
+      <label class="wide">Name<input data-f="name" maxlength="150" value="${esc(p.name)}"></label>
+      <label class="wide">Description<textarea data-f="descr" rows="2" maxlength="500">${esc(p.descr)}</textarea></label>
+      <label>Price (Ks)<input data-f="price" type="number" min="0" step="1" inputmode="numeric" value="${p.price}"></label>
+      <label>Stock<div class="stock">
+        ${isNew ? "" : `<button class="btn ghost sm" data-delta="-1" aria-label="Minus one">−</button>`}
+        <input data-f="stock" type="number" min="0" step="1" inputmode="numeric" value="${p.stock}">
+        ${isNew ? "" : `<button class="btn ghost sm" data-delta="1" aria-label="Plus one">+</button>`}</div></label>
+      <label>Colour 1<input data-f="c1" type="color" value="${esc(p.c1)}"></label>
+      <label>Colour 2<input data-f="c2" type="color" value="${esc(p.c2)}"></label>
+      <label>Shown in shop<select data-f="active"><option value="1" ${p.active ? "selected" : ""}>Yes</option><option value="0" ${p.active ? "" : "selected"}>No (hidden)</option></select></label>
+    </div>
+    <div class="act"><button class="btn" data-save>${isNew ? "Create product" : "Save changes"}</button>
+      ${isNew ? `<button class="btn ghost" data-cancel>Cancel</button>` : ""}</div>
+  </article>`;
+}
+function renderProducts(draft) {
+  $("#prodList").innerHTML = (draft ? prodCard(draft) : "") + products.map(prodCard).join("");
+}
+function readCard(card) {
+  const o = {};
+  card.querySelectorAll("[data-f]").forEach(el => o[el.dataset.f] = el.value);
+  o.active = o.active === "1";
+  return o;
+}
+$("#addProduct").onclick = () => {
+  if ($("#prodList [data-pid='']")) return;
+  renderProducts({ name: "", descr: "", price: 0, stock: 0, active: true, c1: "#7a3f1d", c2: "#e0a648" });
+  $("#prodList [data-f=name]").focus();
+};
+$("#prodList").addEventListener("click", e => {
+  const card = e.target.closest("[data-pid]"); if (!card) return;
+  const id = card.dataset.pid;
+  if (e.target.matches("[data-cancel]")) return renderProducts();
+  if (e.target.matches("[data-delta]")) {
+    // quick stock change, applied relative to the live value on the server
+    return run(async () => {
+      await api("/admin/products/" + id, { method: "PATCH", body: { delta: Number(e.target.dataset.delta) } });
+      await Promise.all([loadStats(), loadProducts()]);
+    });
+  }
+  if (e.target.matches("[data-save]")) {
+    e.target.disabled = true;
+    run(async () => {
+      const body = readCard(card);
+      if (id) await api("/admin/products/" + id, { method: "PATCH", body });
+      else await api("/admin/products", { method: "POST", body });
+      toast(id ? "Saved" : "Product created"); await Promise.all([loadProducts(), loadStats()]);
+    }).finally(() => { e.target.disabled = false; });
+  }
+});
+
+/* ---------- boot ---------- */
+async function refreshAll() { await Promise.all([loadStats(), loadOrders(), loadProducts()]); }
+setInterval(() => { // keep new orders flowing in without touching what you are typing
+  if (document.hidden || $("#app").hidden || document.activeElement?.matches("input,textarea,select")) return;
+  loadStats().catch(() => {}); loadOrders().catch(() => {});
+}, 30000);
+(async () => {
+  if (!getToken()) return showLogin();
+  try { (await api("/admin/me")).admin ? showApp() : (setToken(""), showLogin()); } catch { showLogin(); }
+})();
+</script>
+</body>
+</html>
