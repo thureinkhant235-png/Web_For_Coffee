@@ -66,6 +66,7 @@ h2{font-size:clamp(24px,3.5vw,34px);color:var(--brand);margin-bottom:10px}
 .card.out .img{opacity:.45}
 .card .img{aspect-ratio:1/.85;display:grid;place-items:center}
 .card .img svg{width:62%;height:auto}
+.card .img img.photo{display:block;width:100%;height:100%;object-fit:cover}
 .card .body{padding:18px;display:flex;flex-direction:column;gap:6px;flex:1}
 .card h3{font-size:17px}
 .card p{margin:0;color:var(--muted);font-size:14px;flex:1}
@@ -247,10 +248,11 @@ return d}
 
 const pack=p=>`<svg viewBox="0 0 120 150" aria-hidden="true"><path d="M20 22h80l8 118H12z" fill="${esc(p.c1)}"/><path d="M20 22h80l-4 24H24z" fill="${esc(p.c2)}"/><rect x="34" y="62" width="52" height="46" rx="6" fill="#f7efe2" opacity=".92"/><text x="60" y="82" text-anchor="middle" font-size="11" font-weight="800" fill="${esc(p.c1)}" font-family="Georgia,serif">Mr Viet</text><text x="60" y="98" text-anchor="middle" font-size="8" fill="${esc(p.c1)}" font-family="Georgia,serif">COFFEE</text></svg>`;
 
+const photo=p=>`<img class="photo" src="${esc(p.image_url)}?tr=w-600" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'">`;
 function renderGrid(){
 $("#grid").innerHTML=PRODUCTS.length?PRODUCTS.map(p=>{
 const out=p.stock<1;
-return `<article class="card ${out?"out":""}"><div class="img" style="background:linear-gradient(145deg,${esc(p.c2)}55,${esc(p.c1)}33)">${pack(p)}</div><div class="body"><h3>${esc(p.name)}</h3><p>${esc(p.descr)}</p><div class="price">${fmt(p.price)}</div>${!out&&p.stock<=5?`<p class="left">လက်ကျန် ${p.stock} ခုသာ ကျန်ပါတော့သည်</p>`:""}<button class="btn" data-add="${p.id}" ${out?"disabled":""}>${out?"ကုန်သွားပါပြီ":"ဈေးခြင်းထဲထည့်ရန်"}</button></div></article>`}).join(""):`<p class="msg">လောလောဆယ် ရောင်းချရန် ကော်ဖီ မရှိသေးပါ။</p>`}
+return `<article class="card ${out?"out":""}"><div class="img" style="background:linear-gradient(145deg,${esc(p.c2)}55,${esc(p.c1)}33)">${p.image_url?photo(p):pack(p)}</div><div class="body"><h3>${esc(p.name)}</h3><p>${esc(p.descr)}</p><div class="price">${fmt(p.price)}</div>${!out&&p.stock<=5?`<p class="left">လက်ကျန် ${p.stock} ခုသာ ကျန်ပါတော့သည်</p>`:""}<button class="btn" data-add="${p.id}" ${out?"disabled":""}>${out?"ကုန်သွားပါပြီ":"ဈေးခြင်းထဲထည့်ရန်"}</button></div></article>`}).join(""):`<p class="msg">လောလောဆယ် ရောင်းချရန် ကော်ဖီ မရှိသေးပါ။</p>`}
 
 // Drop cart lines that are gone / sold out, and trim quantities to the stock we have.
 function reconcile(){

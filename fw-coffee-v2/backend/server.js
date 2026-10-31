@@ -26,7 +26,11 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map(s => s.trim
 const ORIGINS = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean);
 const lowParsed = parseInt(process.env.LOW_STOCK, 10);
 const LOW_STOCK = Number.isInteger(lowParsed) && lowParsed >= 0 ? lowParsed : 10;
-
+const IK_PUBLIC_KEY = (process.env.IMAGEKIT_PUBLIC_KEY || "").trim();
+const IK_PRIVATE_KEY = (process.env.IMAGEKIT_PRIVATE_KEY || "").trim();
+const IK_URL_ENDPOINT = (process.env.IMAGEKIT_URL_ENDPOINT || "").trim().replace(/\/+$/, "");
+if (!IK_PUBLIC_KEY || !IK_PRIVATE_KEY || !IK_URL_ENDPOINT)
+  console.warn("WARNING: ImageKit variables are not set – product image upload is disabled.");
 if (!DATABASE_URL) { console.error("ERROR: set DATABASE_URL (your Neon connection string)."); process.exit(1); }
 if (!GOOGLE_CLIENT_ID) { console.error("ERROR: set GOOGLE_CLIENT_ID (see README, Google sign-in)."); process.exit(1); }
 if (!ADMIN_EMAILS.length) { console.error("ERROR: set ADMIN_EMAILS (the Google accounts allowed into the admin panel)."); process.exit(1); }
@@ -96,7 +100,12 @@ const MIGRATIONS = [
      ('Mr Viet Whole Bean – Arabica / Robusta','ကော်ဖီစေ့အပြည့်၊ ကိုယ်တိုင်ကြိတ်သောက်ရန် (၁ ကီလို)',32000,50,'#2a1710','#b8742e'),
      ('Mr Viet 3-in-1 Instant Coffee','ကော်ဖီ၊ ဆီးနှင့် သကြား ပါပြီးသား၊ ရေနွေးထည့်ရုံဖြင့် အဆင်သင့် (၂၀ ဆာချေ)',9000,50,'#a8541c','#f3c77a')
    ) AS v(name,descr,price,stock,c1,c2)
-   WHERE NOT EXISTS (SELECT 1 FROM products);`
+   WHERE NOT EXISTS (SELECT 1 FROM products);`,
+
+  // Product photos live at ImageKit; the database keeps only the link and ImageKit's file id.
+  `ALTER TABLE products
+     ADD COLUMN image_url TEXT,
+     ADD COLUMN image_file_id TEXT;`
 ];
 
 async function migrate() {
@@ -256,7 +265,7 @@ app.use((req, res, next) => {
       "Access-Control-Allow-Origin": origin,
       "Vary": "Origin",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       "Access-Control-Max-Age": "600"
     });
   }
@@ -275,7 +284,7 @@ app.get("/healthz", wrap(async () => { await query("SELECT 1"); return { ok: tru
 
 // ----- Public API -----
 app.get("/api/products", wrap(async () =>
-  (await query("SELECT id,name,descr,price,stock,c1,c2 FROM products WHERE active ORDER BY id")).rows
+  (await query("SELECT id,name,descr,price,stock,c1,c2,image_url FROM products WHERE active ORDER BY id")).rows
 ));
 
 app.post("/api/orders", limiter(20, 3600 * 1000), wrap(async req => {
@@ -411,6 +420,58 @@ app.patch("/api/admin/products/:id", requireAdmin, wrap(async req => {
       [f.name, f.descr, f.price, f.stock, f.active, f.c1, f.c2, id]);
     return { ok: true, stock: f.stock };
   });
+}));
+
+// ----- Admin: product photos (stored at ImageKit; the database keeps only the link) -----
+const needIK = () => {
+  if (!IK_PUBLIC_KEY || !IK_PRIVATE_KEY || !IK_URL_ENDPOINT)
+    throw new HttpError(503, "Image upload is not set up yet (ImageKit keys are missing on the server)");
+};
+async function ikDelete(fileId) { // best effort: remove the replaced/removed file from ImageKit
+  if (!fileId || !IK_PRIVATE_KEY) return;
+  try {
+    await fetch(`https://api.imagekit.io/v1/files/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+      headers: { Authorization: "Basic " + Buffer.from(IK_PRIVATE_KEY + ":").toString("base64") }
+    });
+  } catch (e) { console.error("ImageKit delete failed:", e.message); }
+}
+
+// The browser uploads straight to ImageKit; this only hands it a short-lived signed permission.
+app.get("/api/admin/imagekit-auth", requireAdmin, wrap(async () => {
+  needIK();
+  const token = crypto.randomUUID();
+  const expire = Math.floor(Date.now() / 1000) + 30 * 60;
+  const signature = crypto.createHmac("sha1", IK_PRIVATE_KEY).update(token + expire).digest("hex");
+  return { token, expire, signature, publicKey: IK_PUBLIC_KEY, folder: "/fw-coffee" };
+}));
+
+app.put("/api/admin/products/:id/image", requireAdmin, wrap(async req => {
+  needIK();
+  const id = int(req.params.id, 1, 2147483647, "Product id");
+  const url = str(req.body && req.body.url, 10, 500, "Image link");
+  const fileId = str(req.body && req.body.fileId, 1, 100, "File id");
+  if (!url.startsWith(IK_URL_ENDPOINT + "/")) throw new HttpError(400, "Image must be hosted on your ImageKit account");
+  const old = await tx(async c => {
+    const cur = (await c.query("SELECT image_file_id FROM products WHERE id=$1 FOR UPDATE", [id])).rows[0];
+    if (!cur) throw new HttpError(404, "Product not found");
+    await c.query("UPDATE products SET image_url=$1, image_file_id=$2, updated_at=now() WHERE id=$3", [url, fileId, id]);
+    return cur.image_file_id;
+  });
+  if (old && old !== fileId) ikDelete(old);
+  return { ok: true, image_url: url };
+}));
+
+app.delete("/api/admin/products/:id/image", requireAdmin, wrap(async req => {
+  const id = int(req.params.id, 1, 2147483647, "Product id");
+  const old = await tx(async c => {
+    const cur = (await c.query("SELECT image_file_id FROM products WHERE id=$1 FOR UPDATE", [id])).rows[0];
+    if (!cur) throw new HttpError(404, "Product not found");
+    await c.query("UPDATE products SET image_url=NULL, image_file_id=NULL, updated_at=now() WHERE id=$1", [id]);
+    return cur.image_file_id;
+  });
+  ikDelete(old);
+  return { ok: true };
 }));
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));

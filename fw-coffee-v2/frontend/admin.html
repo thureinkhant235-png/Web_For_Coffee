@@ -59,6 +59,10 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
 .stock input{text-align:center}
 .low{color:var(--red);font-weight:700}
 .off{opacity:.6}
+.imgrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.thumb{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:var(--bg);flex:none}
+.thumb.ph{display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.imgctl{display:grid;gap:6px;justify-items:start}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--brand);color:var(--surface);padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
 #toast.on{opacity:1}
 @media (prefers-color-scheme:dark){#toast{color:#1a100b}}
@@ -129,6 +133,7 @@ const ks = n => Number(n).toLocaleString("en-US") + " Ks";
 const when = iso => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 const STATUSES = ["New", "Confirmed", "Delivered", "Cancelled"];
 let LOW = 10, products = [], orders = [], ordersTotal = 0;
+let pendingImage = null; // photo chosen for a product that has not been created yet
 
 function toast(t) {
   const e = $("#toast"); e.textContent = t; e.classList.add("on");
@@ -245,11 +250,60 @@ $("#export").onclick = () => run(async () => {
 
 /* ---------- inventory ---------- */
 async function loadProducts() { products = await api("/admin/products"); renderProducts(); }
+const thumbUrl = u => u + "?tr=w-300";
+const imgRow = src => `<div class="imgrow">
+  ${src ? `<img class="thumb" src="${esc(src)}" alt="Product photo">` : `<div class="thumb ph">No photo</div>`}
+  <div class="imgctl">
+    <button type="button" class="btn ghost sm" data-pick>${src ? "Change photo" : "Add photo"}</button>
+    <input type="file" data-file accept="image/*" hidden>
+    ${src ? `<button type="button" class="btn ghost sm" data-rmimg>Remove photo</button>` : ""}
+    <span class="muted">Shown on the shop page. Resized automatically.</span>
+  </div></div>`;
+const setThumb = (card, src) => { card.querySelector(".imgrow").outerHTML = imgRow(src); };
+
+// Shrinks a phone photo to max 1200px (WebP, or JPEG on old browsers) before uploading.
+async function resizeImage(file) {
+  if (!file.type.startsWith("image/")) throw new Error("Please choose an image file");
+  let bmp;
+  try { bmp = await createImageBitmap(file); } catch { throw new Error("This image format is not supported"); }
+  const s = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  const ctx = c.getContext("2d");
+  const toBlob = (type, q) => new Promise(r => c.toBlob(r, type, q));
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  let blob = await toBlob("image/webp", 0.85);
+  if (!blob || blob.type !== "image/webp") {
+    ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    blob = await toBlob("image/jpeg", 0.88);
+  }
+  if (!blob) throw new Error("Could not process this image");
+  return blob;
+}
+// Browser -> ImageKit directly (the server only signs the request), then the link is saved on our server.
+async function uploadPhoto(productId, blob) {
+  const a = await api("/admin/imagekit-auth");
+  const fd = new FormData();
+  fd.append("file", blob);
+  fd.append("fileName", `product-${productId}.${blob.type === "image/webp" ? "webp" : "jpg"}`);
+  fd.append("publicKey", a.publicKey); fd.append("signature", a.signature);
+  fd.append("expire", a.expire); fd.append("token", a.token);
+  fd.append("folder", a.folder); fd.append("useUniqueFileName", "true");
+  let r;
+  try { r = await fetch("https://upload.imagekit.io/api/v1/files/upload", { method: "POST", body: fd }); }
+  catch { throw new Error("Could not reach ImageKit"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.message || "ImageKit upload failed");
+  await api(`/admin/products/${productId}/image`, { method: "PUT", body: { url: d.url, fileId: d.fileId } });
+  return d.url;
+}
+
 function prodCard(p) {
   const isNew = !p.id, low = !isNew && p.active && p.stock <= LOW;
   return `<article class="card ${p.active ? "" : "off"}" data-pid="${p.id || ""}">
     <div class="top"><b>${isNew ? "New product" : "#" + p.id}</b>
       <span class="muted">${low ? '<span class="low">Low stock</span> · ' : ""}${p.active ? "Visible in shop" : "Hidden from shop"}</span></div>
+    ${imgRow(p.image_url ? thumbUrl(p.image_url) : "")}
     <div class="grid">
       <label class="wide">Name<input data-f="name" maxlength="150" value="${esc(p.name)}"></label>
       <label class="wide">Description<textarea data-f="descr" rows="2" maxlength="500">${esc(p.descr)}</textarea></label>
@@ -277,13 +331,23 @@ function readCard(card) {
 }
 $("#addProduct").onclick = () => {
   if ($("#prodList [data-pid='']")) return;
+  pendingImage = null;
   renderProducts({ name: "", descr: "", price: 0, stock: 0, active: true, c1: "#7a3f1d", c2: "#e0a648" });
   $("#prodList [data-f=name]").focus();
 };
 $("#prodList").addEventListener("click", e => {
   const card = e.target.closest("[data-pid]"); if (!card) return;
   const id = card.dataset.pid;
-  if (e.target.matches("[data-cancel]")) return renderProducts();
+  if (e.target.matches("[data-cancel]")) { pendingImage = null; return renderProducts(); }
+  if (e.target.matches("[data-pick]")) return card.querySelector("[data-file]").click();
+  if (e.target.matches("[data-rmimg]")) {
+    if (!id) { pendingImage = null; return setThumb(card, ""); }
+    return run(async () => {
+      await api(`/admin/products/${id}/image`, { method: "DELETE", body: {} });
+      const p = products.find(x => x.id == id); if (p) p.image_url = null;
+      setThumb(card, ""); toast("Photo removed");
+    });
+  }
   if (e.target.matches("[data-delta]")) {
     // quick stock change, applied relative to the live value on the server
     return run(async () => {
@@ -296,10 +360,36 @@ $("#prodList").addEventListener("click", e => {
     run(async () => {
       const body = readCard(card);
       if (id) await api("/admin/products/" + id, { method: "PATCH", body });
-      else await api("/admin/products", { method: "POST", body });
+      else {
+        const created = await api("/admin/products", { method: "POST", body });
+        if (pendingImage) {
+          try { await uploadPhoto(created.id, pendingImage); }
+          catch (err) { toast("Product created, but the photo failed: " + err.message); }
+          pendingImage = null;
+          await Promise.all([loadProducts(), loadStats()]); return;
+        }
+      }
       toast(id ? "Saved" : "Product created"); await Promise.all([loadProducts(), loadStats()]);
     }).finally(() => { e.target.disabled = false; });
   }
+});
+
+// Photo chosen: existing product -> upload now; new product -> keep it until "Create product".
+$("#prodList").addEventListener("change", e => {
+  if (!e.target.matches("[data-file]")) return;
+  const file = e.target.files[0]; if (!file) return;
+  const card = e.target.closest("[data-pid]"), id = card.dataset.pid;
+  const btn = card.querySelector("[data-pick]"); btn.disabled = true; btn.textContent = "Uploading…";
+  run(async () => {
+    const blob = await resizeImage(file);
+    if (!id) { pendingImage = blob; setThumb(card, URL.createObjectURL(blob)); return; }
+    const url = await uploadPhoto(id, blob);
+    const p = products.find(x => x.id == id); if (p) p.image_url = url;
+    setThumb(card, thumbUrl(url)); toast("Photo saved – it is now live on the shop");
+  }).finally(() => {
+    const b = card.querySelector("[data-pick]");
+    if (b) { b.disabled = false; b.textContent = card.querySelector(".thumb:not(.ph)") ? "Change photo" : "Add photo"; }
+  });
 });
 
 /* ---------- boot ---------- */
