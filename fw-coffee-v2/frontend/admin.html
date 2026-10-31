@@ -16,6 +16,7 @@ input,select,textarea{padding:9px 11px;border:1px solid var(--line);border-radiu
 .btn{border:0;border-radius:8px;padding:9px 16px;background:var(--gold);color:#2a1a12;font-weight:700;cursor:pointer}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
 .btn.sm{padding:6px 11px;font-size:13px}
+a.btn{text-decoration:none;display:inline-block}
 .btn:disabled{opacity:.5;cursor:default}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 /* login */
@@ -216,7 +217,7 @@ function renderOrders() {
       <div class="muted">${esc(o.addr)} · Pay: ${esc(o.pay)}</div>
       <ul class="items">${o.items.map(i => `<li><span>${esc(i.name)} × ${i.qty}</span><span>${ks(i.price * i.qty)}</span></li>`).join("")}
         <li><b>Total</b><b>${ks(o.total)}</b></li></ul>
-      <div class="act"><label class="muted">Status
+      <div class="act"><a class="btn ghost sm" href="invoice?id=${o.id}&t=${esc(o.public_token)}" target="_blank" rel="noopener">Invoice / PDF</a><label class="muted">Status
         <select data-status>${STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
       <div class="note"><input data-note maxlength="500" placeholder="Private note" value="${esc(o.note)}"><button class="btn ghost sm" data-savenote>Save note</button></div>
     </article>`).join("") : `<p class="muted">No orders found.</p>`;

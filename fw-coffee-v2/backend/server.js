@@ -105,7 +105,11 @@ const MIGRATIONS = [
   // Product photos live at ImageKit; the database keeps only the link and ImageKit's file id.
   `ALTER TABLE products
      ADD COLUMN image_url TEXT,
-     ADD COLUMN image_file_id TEXT;`
+     ADD COLUMN image_file_id TEXT;`,
+
+  // Secret code so each customer can open only their own invoice.
+  `ALTER TABLE orders
+     ADD COLUMN public_token TEXT NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', '');`
 ];
 
 async function migrate() {
@@ -205,9 +209,9 @@ async function placeOrder(o) {
     const lines = o.items.map(i => bought.get(i.id));
     const total = lines.reduce((s, l) => s + l.price * l.qty, 0);
     const r = await c.query(
-      "INSERT INTO orders(name,phone,addr,pay,items,total) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+      "INSERT INTO orders(name,phone,addr,pay,items,total) VALUES($1,$2,$3,$4,$5,$6) RETURNING id, public_token",
       [o.name, o.phone, o.addr, o.pay, JSON.stringify(lines), total]);
-    return { id: r.rows[0].id, total };
+        return { id: r.rows[0].id, total, token: r.rows[0].public_token };
   });
 }
 
@@ -305,7 +309,16 @@ app.post("/api/orders", limiter(20, 3600 * 1000), wrap(async req => {
     items
   });
 }));
-
+// ----- Public: invoice (needs the secret code from the invoice link) -----
+app.get("/api/orders/:id", limiter(60, 3600 * 1000), wrap(async req => {
+  const id = int(req.params.id, 1, 2147483647, "Order id");
+  const t = typeof req.query.t === "string" ? req.query.t : "";
+  const o = (await query(
+    "SELECT id,created_at,name,phone,addr,pay,items,total,status FROM orders WHERE id=$1 AND public_token=$2",
+    [id, t])).rows[0];
+  if (!o) throw new HttpError(404, "Invoice not found");
+  return o;
+}));
 // ----- Admin auth (Bearer token; the website keeps it in sessionStorage) -----
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 app.post("/api/admin/login", limiter(20, 15 * 60 * 1000), async (req, res, next) => {
