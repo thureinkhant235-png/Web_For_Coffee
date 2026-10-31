@@ -296,7 +296,11 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")cartOpen(false)});
 
 $("#checkout").onclick=()=>{
 if(!Object.keys(cart).length){toast("ဈေးခြင်းထဲ ပစ္စည်းထည့်ပါ");return}
-cartOpen(false);$("#order").scrollIntoView({behavior:"smooth"});setTimeout(()=>$("#form [name=name]").focus({preventScroll:true}),600)};
+cartOpen(false);
+const form=$("#form");
+if(form.checkValidity()){form.requestSubmit();return}
+$("#order").scrollIntoView({behavior:"smooth"});
+setTimeout(()=>{$("#form [name=name]").focus({preventScroll:true});toast("အမည်၊ ဖုန်း၊ လိပ်စာ ဖြည့်ပြီး အော်ဒါတင်ပါ")},600)};
 
 const errText=e=>e.status===0?"ချိတ်ဆက်၍ မရပါ၊ ခဏနေပြီး ပြန်ကြိုးစားပါ"
 :e.status===409?"ပစ္စည်း လက်ကျန် မလုံလောက်ပါ၊ ဈေးခြင်းကို ပြန်စစ်ပါ"
@@ -315,6 +319,9 @@ const summary=lines(),sumTotal=total();
 submitting=true;const btn=$("#submit");btn.disabled=true;btn.textContent="တင်နေပါသည်…";
 try{
 const r=await api("/api/orders",{method:"POST",body});
+cart={};save();
+location.href="invoice?id="+r.id+"&t="+encodeURIComponent(r.token);
+return;
 const msg=`Mr Viet Coffee အော်ဒါ #${r.id}\n${summary}\nစုစုပေါင်း: ${fmt(r.total)}\nအမည်: ${body.name}\nဖုန်း: ${body.phone}\nလိပ်စာ: ${body.addr}\nငွေပေးချေမှု: ${body.pay}`;
 cart={};render();form.reset();
 $("#doneMsg").textContent=`အော်ဒါနံပါတ် #${r.id} (${fmt(r.total)}) ကို လက်ခံရရှိပါပြီ။ ကျွန်ုပ်တို့ ဖုန်းဖြင့် မကြာမီ ဆက်သွယ်ပါမည်။`;
