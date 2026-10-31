@@ -1,86 +1,135 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Invoice – F &amp; W Coffee</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&family=Dancing+Script:wght@700&family=Noto+Sans+Myanmar:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+:root{--cream:#fff9f1;--maroon:#6b1a14;--taupe:#b99a87;--taupe-d:#9a7a67;--ink:#2a1a12;--muted:#7a6558;--line:#ecdcc9}
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:#f1e8d8;color:#2a1a12;font:15px/1.7 "Noto Sans Myanmar","Myanmar Text",system-ui,sans-serif}
-.tools{max-width:780px;margin:16px auto 0;padding:0 16px;display:flex;gap:10px;flex-wrap:wrap}
-.btn{border:0;border-radius:8px;padding:11px 20px;background:#c98a2b;color:#2a1a12;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
-.btn.ghost{background:#fff;border:1px solid #d9c6a6;font-weight:400}
-.paper{max-width:780px;margin:16px auto 40px;background:#fff;border:1px solid #e4d3bb;border-radius:10px;padding:32px}
-.head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid #c98a2b;padding-bottom:16px;margin-bottom:18px}
-.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:22px;color:#4a2a1a}
-.brand img{width:56px;height:56px;object-fit:contain}
-.meta{text-align:right}
-.meta h1{margin:0;font-size:26px;color:#4a2a1a}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:18px}
-.cols h3{margin:0 0 4px;font-size:13px;color:#6f5848;text-transform:uppercase}
-table{width:100%;border-collapse:collapse}
-th,td{padding:9px 6px;border-bottom:1px solid #e4d3bb;text-align:left}
-th{background:#f7efe2;font-size:13px}
-.r{text-align:right}
-.total td{font-weight:700;font-size:18px;border-bottom:0;border-top:2px solid #4a2a1a}
-.foot{margin-top:24px;text-align:center;color:#6f5848;font-size:14px}
-.msg{max-width:780px;margin:40px auto;text-align:center;padding:0 16px}
-.badge{display:inline-block;border:1px solid #6f5848;border-radius:99px;padding:0 10px;font-size:13px}
-@media (max-width:560px){.cols{grid-template-columns:1fr}.meta{text-align:left}.paper{padding:18px}}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#e9dfd0;color:var(--ink);font:14px/1.6 "Poppins","Noto Sans Myanmar",system-ui,sans-serif}
+.tools{max-width:210mm;margin:16px auto 0;padding:0 12px;display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:99px;padding:11px 22px;background:var(--maroon);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid #d9c6a6;font-weight:500}
+.sheet{width:210mm;max-width:100%;margin:14px auto 40px;background:var(--cream);padding:38px 42px 34px;box-shadow:0 10px 40px rgba(60,30,10,.18);position:relative;overflow:hidden}
+.sheet::before{content:"";position:absolute;top:-90px;right:-90px;width:260px;height:260px;border-radius:50%;background:var(--taupe);opacity:.14}
+.head{display:grid;grid-template-columns:210px 1fr;gap:26px;align-items:center;position:relative}
+.logo{width:200px;height:200px;object-fit:contain}
+.title .shop{margin:0;font-size:28px;font-weight:800;color:var(--maroon);letter-spacing:.5px;line-height:1.1}
+.title .inv{margin:2px 0 0;font-size:76px;font-weight:800;color:var(--taupe);letter-spacing:1px;line-height:1}
+.info{display:grid;grid-template-columns:1fr 1.2fr;gap:24px;margin:26px 0 22px;position:relative}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-content:end;font-size:13px}
+.meta dt{color:var(--muted)}.meta dd{margin:0;font-weight:600}
+.bill h3{margin:0 0 4px;font-size:20px;font-weight:600}
+.bill ul{margin:0;padding-left:18px}
+.bill li{margin:1px 0}
+.pill{display:inline-block;border:1.5px solid var(--maroon);color:var(--maroon);border-radius:99px;padding:0 12px;font-size:12px;font-weight:600}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+thead th{background:var(--taupe);color:#fff;text-align:left;padding:11px 14px;font-weight:600;font-size:13px}
+thead th:first-child{border-radius:99px 0 0 99px;padding-left:22px}
+thead th:last-child{border-radius:0 99px 99px 0;padding-right:22px}
+td{padding:11px 14px;border-bottom:1px solid var(--line)}
+td:first-child{padding-left:22px}td:last-child{padding-right:22px}
+.r{text-align:right}th.r{text-align:right}
+.totals{margin:20px 0 0 auto;width:min(330px,100%);background:var(--taupe);color:#fff;border-radius:26px;padding:16px 24px;display:grid;gap:6px}
+.totals div{display:flex;justify-content:space-between;gap:16px}
+.totals .net{border-top:1px solid rgba(255,255,255,.55);padding-top:9px;margin-top:3px;font-weight:800;font-size:17px}
+.foot{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:30px;align-items:end;position:relative}
+.thanks{font:700 54px/1 "Dancing Script",cursive;color:var(--taupe-d);margin:0 0 6px;transform:rotate(-4deg);transform-origin:left}
+.foot .shop{font-weight:800;font-size:20px;color:var(--maroon);margin:8px 0 0}
+.foot small{color:var(--muted)}
+.pay h3{margin:0 0 6px;font-size:20px;font-weight:600}
+.pay dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13px}
+.pay dt{color:var(--muted)}.pay dd{margin:0;font-weight:500}
+.msg{max-width:210mm;margin:40px auto;text-align:center;padding:0 16px}
+@media screen and (max-width:640px){
+  .sheet{padding:22px 16px}.head{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .logo{width:150px;height:150px}.title .inv{font-size:52px}.info,.foot{grid-template-columns:1fr}
+  thead th,td{padding:9px 6px;font-size:12px}thead th:first-child,td:first-child{padding-left:12px}thead th:last-child,td:last-child{padding-right:12px}
+  .thanks{font-size:42px}
+}
 @media print{
-  body{background:#fff}.tools{display:none}
-  .paper{margin:0;border:0;border-radius:0;max-width:none;padding:0}
-  @page{margin:14mm}
+  @page{size:A4;margin:0}
+  body{background:var(--cream)}.tools{display:none}
+  .sheet{margin:0;box-shadow:none;width:210mm;min-height:297mm;padding:14mm}
 }
 </style>
 </head>
 <body>
 <div class="tools" id="tools" hidden>
-  <button class="btn" id="pdf">PDF ဖြင့် သိမ်းရန် / ပရင့်ထုတ်ရန်</button>
-  <a class="btn ghost" href="/">ဆိုင်သို့ ပြန်သွားရန်</a>
+  <button class="btn" id="pdf">Download PDF / Print</button>
+  <a class="btn ghost" href="/">Back to shop</a>
 </div>
-<div class="msg" id="msg">ပြေစာ ရယူနေပါသည်… (ဆာဗာ နိုးထနေလျှင် စက္ကန့် ၃၀ ခန့် ကြာနိုင်သည်)</div>
-<div class="paper" id="paper" hidden></div>
+<div class="msg" id="msg">Loading invoice… (if the server was idle this can take about 30 seconds)</div>
+<div class="sheet" id="sheet" hidden></div>
 
 <script src="config.js"></script>
 <script>
+/* ===== Edit these details if they change ===== */
+const DELIVERY_FEE = 0;   // in Ks. Use 0 for free delivery (shows "Free"). Example: 4500
+const PAYMENT = { bank: "K-pay", name: "Yadanar Win Htut", number: "09797474378" };
+const LOCATION = "Da Nang, Vietnam";
+const LOGO = "https://ik.imagekit.io/vjlvspano/F&W/logo_2-removebg-preview.png";
+/* ============================================ */
+
 const API = (window.FW_API || "").replace(/\/+$/, "");
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const ks = n => Number(n).toLocaleString("en-US") + " Ks";
+const mmk = n => Number(n).toLocaleString("en-US") + " MMK";
 const P = new URLSearchParams(location.search);
 const id = P.get("id"), t = P.get("t");
 
 (async () => {
-  if (!id || !t) { $("#msg").textContent = "ပြေစာလင့်ခ် မမှန်ကန်ပါ။"; return; }
+  if (!id || !t) { $("#msg").textContent = "This invoice link is not valid."; return; }
   let o;
   try {
     const r = await fetch(`${API}/api/orders/${encodeURIComponent(id)}?t=${encodeURIComponent(t)}`);
     o = await r.json();
     if (!r.ok) throw 0;
-  } catch { $("#msg").textContent = "ပြေစာ ရှာမတွေ့ပါ သို့မဟုတ် ချိတ်ဆက်၍ မရပါ။ ခဏနေပြီး ပြန်ကြိုးစားပါ။"; return; }
+  } catch { $("#msg").textContent = "Invoice not found or the server could not be reached. Please try again in a moment."; return; }
 
-  const no = "INV-" + String(o.id).padStart(6, "0");
-  document.title = no + " – F & W Coffee";
-  const date = new Date(o.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-  $("#paper").innerHTML = `
+  const no = String(o.id).padStart(4, "0");
+  document.title = "Invoice-" + no + " F&W Coffee";
+  const date = new Date(o.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }).toUpperCase();
+  const sub = Number(o.total), net = sub + DELIVERY_FEE;
+
+  $("#sheet").innerHTML = `
     <div class="head">
-      <div class="brand"><img src="https://ik.imagekit.io/vjlvspano/F&W/logo_2-removebg-preview.png" alt="" onerror="this.style.display='none'"><span>F &amp; W Coffee<br><small style="font-weight:400;font-size:13px">Mr Viet Coffee</small></span></div>
-      <div class="meta"><h1>ပြေစာ / INVOICE</h1><div><b>${no}</b></div><div>${esc(date)}</div><div><span class="badge">${esc(o.status)}</span></div></div>
+      <img class="logo" src="${LOGO}" alt="F&W Coffee" onerror="this.style.display='none'">
+      <div class="title"><p class="shop">F&amp;W COFFEE</p><h1 class="inv">INVOICE</h1></div>
     </div>
-    <div class="cols">
-      <div><h3>ဝယ်သူ</h3><div><b>${esc(o.name)}</b></div><div>${esc(o.phone)}</div><div>${esc(o.addr)}</div></div>
-      <div><h3>ငွေပေးချေမှု</h3><div>${esc(o.pay)}</div></div>
+    <div class="info">
+      <dl class="meta">
+        <dt>Invoice Number</dt><dd>${no}</dd>
+        <dt>Date</dt><dd>${esc(date)}</dd>
+        <dt>Payment</dt><dd>${esc(o.pay)}</dd>
+        <dt>Status</dt><dd><span class="pill">${esc(o.status)}</span></dd>
+      </dl>
+      <div class="bill"><h3>Billed To:</h3>
+        <ul><li>${esc(o.name)}</li><li>${esc(o.addr)}</li><li>Ph-${esc(o.phone)}</li></ul>
+      </div>
     </div>
     <table>
-      <thead><tr><th>ပစ္စည်း</th><th class="r">ဈေးနှုန်း</th><th class="r">အရေအတွက်</th><th class="r">ကျသင့်ငွေ</th></tr></thead>
-      <tbody>${o.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">${ks(i.price)}</td><td class="r">${i.qty}</td><td class="r">${ks(i.price * i.qty)}</td></tr>`).join("")}</tbody>
-      <tfoot><tr class="total"><td colspan="3" class="r">စုစုပေါင်း</td><td class="r">${ks(o.total)}</td></tr></tfoot>
+      <thead><tr><th>Description</th><th class="r">Price</th><th class="r">Quantity</th><th class="r">Amount</th></tr></thead>
+      <tbody>${o.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">${mmk(i.price)}</td><td class="r">${i.qty}</td><td class="r">${mmk(i.price * i.qty)}</td></tr>`).join("")}</tbody>
     </table>
-    <p class="foot">ဝယ်ယူအားပေးမှုအတွက် ကျေးဇူးတင်ပါသည်။ ကျွန်ုပ်တို့ ဖုန်းဖြင့် ဆက်သွယ်ပါမည်။</p>`;
-  $("#msg").hidden = true; $("#paper").hidden = false; $("#tools").hidden = false;
+    <div class="totals">
+      <div><span>Subtotal</span><span>${mmk(sub)}</span></div>
+      <div><span>Delivery Fee</span><span>${DELIVERY_FEE ? mmk(DELIVERY_FEE) : "Free"}</span></div>
+      <div class="net"><span>Net Amount</span><span>${mmk(net)}</span></div>
+    </div>
+    <div class="foot">
+      <div><p class="thanks">Thank You</p><p class="shop">F&amp;W COFFEE</p><small>${esc(LOCATION)}</small></div>
+      <div class="pay"><h3>Payment Detail:</h3>
+        <dl><dt>Bank</dt><dd>${esc(PAYMENT.bank)}</dd><dt>Account Name</dt><dd>${esc(PAYMENT.name)}</dd><dt>Account Number</dt><dd>${esc(PAYMENT.number)}</dd></dl>
+      </div>
+    </div>`;
+  $("#msg").hidden = true; $("#sheet").hidden = false; $("#tools").hidden = false;
 })();
 $("#pdf").onclick = () => window.print();
 </script>
