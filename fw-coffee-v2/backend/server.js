@@ -5,7 +5,8 @@
 
    Environment variables
      DATABASE_URL    (required)  Neon connection string (use the "pooled" one)
-     ADMIN_PASSWORD  (required)  8+ characters, password for the admin panel
+     GOOGLE_CLIENT_ID (required) OAuth client ID from Google Cloud (see README)
+     ADMIN_EMAILS    (required)  comma-separated Google accounts allowed into /admin
      ALLOWED_ORIGINS (required)  comma-separated website URLs allowed to call this API,
                                  e.g. https://my-shop.vercel.app,http://localhost:3000
      PORT            (optional)  Render sets this automatically
@@ -14,18 +15,21 @@
 const express = require("express");
 const { Pool, types } = require("pg");
 const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 
 types.setTypeParser(20, Number); // bigint (COUNT, SUM, total) -> JS number
 
 const PORT = Number(process.env.PORT) || 4000;
 const DATABASE_URL = process.env.DATABASE_URL || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
 const ORIGINS = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean);
 const lowParsed = parseInt(process.env.LOW_STOCK, 10);
 const LOW_STOCK = Number.isInteger(lowParsed) && lowParsed >= 0 ? lowParsed : 10;
 
 if (!DATABASE_URL) { console.error("ERROR: set DATABASE_URL (your Neon connection string)."); process.exit(1); }
-if (ADMIN_PASSWORD.length < 8) { console.error("ERROR: set ADMIN_PASSWORD (at least 8 characters)."); process.exit(1); }
+if (!GOOGLE_CLIENT_ID) { console.error("ERROR: set GOOGLE_CLIENT_ID (see README, Google sign-in)."); process.exit(1); }
+if (!ADMIN_EMAILS.length) { console.error("ERROR: set ADMIN_EMAILS (the Google accounts allowed into the admin panel)."); process.exit(1); }
 if (!ORIGINS.length) console.warn("WARNING: ALLOWED_ORIGINS is empty – browsers on other domains will be blocked.");
 
 class HttpError extends Error {
@@ -125,12 +129,11 @@ async function loadSecret() {
 /* ---------- Helpers ---------- */
 const STATUSES = ["New", "Confirmed", "Delivered", "Cancelled"];
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-const sha = s => crypto.createHash("sha256").update(String(s)).digest();
-// Changing ADMIN_PASSWORD automatically signs everyone out.
-const sign = d => crypto.createHmac("sha256", SECRET + ":" + ADMIN_PASSWORD).update(d).digest("base64url");
+const sign = d => crypto.createHmac("sha256", SECRET).update(d).digest("base64url");
 
-function makeToken() {
-  const body = Buffer.from(JSON.stringify({ exp: Date.now() + 12 * 3600 * 1000 })).toString("base64url");
+// Our own 12-hour session token, issued only after Google has confirmed who you are.
+function makeToken(email) {
+  const body = Buffer.from(JSON.stringify({ exp: Date.now() + 12 * 3600 * 1000, email })).toString("base64url");
   return body + "." + sign(body);
 }
 function validToken(tok) {
@@ -139,7 +142,11 @@ function validToken(tok) {
   if (!body || !sig) return false;
   const expect = sign(body);
   if (sig.length !== expect.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expect))) return false;
-  try { return JSON.parse(Buffer.from(body, "base64url").toString()).exp > Date.now(); } catch { return false; }
+  try {
+    const p = JSON.parse(Buffer.from(body, "base64url").toString());
+    // Removing an email from ADMIN_EMAILS locks that person out immediately.
+    return p.exp > Date.now() && ADMIN_EMAILS.includes(p.email);
+  } catch { return false; }
 }
 const bearer = req => { const h = req.headers.authorization || ""; return h.startsWith("Bearer ") ? h.slice(7) : ""; };
 const isAdmin = req => validToken(bearer(req));
@@ -291,11 +298,22 @@ app.post("/api/orders", limiter(20, 3600 * 1000), wrap(async req => {
 }));
 
 // ----- Admin auth (Bearer token; the website keeps it in sessionStorage) -----
-app.post("/api/admin/login", limiter(10, 15 * 60 * 1000), (req, res) => {
-  const pw = req.body && req.body.password;
-  if (typeof pw !== "string" || !crypto.timingSafeEqual(sha(pw), sha(ADMIN_PASSWORD)))
-    return res.status(401).json({ error: "Wrong password" });
-  res.json({ token: makeToken() });
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+app.post("/api/admin/login", limiter(20, 15 * 60 * 1000), async (req, res, next) => {
+  try {
+    const cred = req.body && req.body.credential;
+    if (typeof cred !== "string" || !cred || cred.length > 4096)
+      return res.status(400).json({ error: "Missing Google credential" });
+    let p;
+    try {
+      const t = await googleClient.verifyIdToken({ idToken: cred, audience: GOOGLE_CLIENT_ID });
+      p = t.getPayload();
+    } catch { return res.status(401).json({ error: "Google sign-in could not be verified" }); }
+    const email = String(p.email || "").toLowerCase();
+    if (!p.email_verified || !ADMIN_EMAILS.includes(email))
+      return res.status(403).json({ error: `${email || "This account"} is not allowed to use the admin panel` });
+    res.json({ token: makeToken(email), email });
+  } catch (e) { next(e); }
 });
 app.get("/api/admin/me", (req, res) => res.json({ admin: isAdmin(req) }));
 
