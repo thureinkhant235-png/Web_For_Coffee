@@ -18,6 +18,7 @@ input,select,textarea{padding:9px 11px;border:1px solid var(--line);border-radiu
 .btn.sm{padding:6px 11px;font-size:13px}
 a.btn{text-decoration:none;display:inline-block}
 .btn.danger{color:var(--red);border-color:var(--red)}
+.btn.ghost.active{background:var(--gold);color:#2a1a12;border-color:var(--gold);font-weight:700}
 #undoBar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 8px 8px 18px;border-radius:99px;display:flex;gap:14px;align-items:center;z-index:100;box-shadow:0 6px 24px rgba(0,0,0,.3)}
 .btn:disabled{opacity:.5;cursor:default}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -101,10 +102,11 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
       <div class="tools">
         <input id="search" type="search" placeholder="Search name, phone, address or order #">
         <select id="statusFilter" aria-label="Filter by status">
-          <option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option><option value="Deleted">Deleted (trash)</option>
+          <option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option><option value="Deleted" hidden>Recycle bin</option>
         </select>
         <button class="btn ghost sm" id="refresh">Refresh</button>
         <button class="btn ghost sm" id="export">Export CSV</button>
+        <button class="btn ghost sm" id="bin"><span id="binLabel">🗑 Recycle bin</span><span class="pill" id="binCount" hidden>0</span></button>
       </div>
       <div id="orderList"></div>
       <div style="text-align:center"><button class="btn ghost" id="more" hidden>Load more</button></div>
@@ -202,6 +204,8 @@ async function loadStats() {
   $("#newCount").textContent = s.counts.New; $("#newCount").hidden = !s.counts.New;
   $("#lowCount").textContent = s.lowStock; $("#lowCount").hidden = !s.lowStock;
   $("#lowHint").textContent = `Low stock = ${LOW} or fewer`;
+  const bin = await api("/admin/orders?status=Deleted&limit=1");
+  $("#binCount").textContent = bin.total; $("#binCount").hidden = !bin.total;
 }
 
 /* ---------- orders ---------- */
@@ -214,6 +218,8 @@ async function loadOrders(append = false) {
 }
 function renderOrders() {
   const trash = $("#statusFilter").value === "Deleted";
+  $("#bin").classList.toggle("active", trash);
+  $("#binLabel").textContent = trash ? "← Back to orders" : "🗑 Recycle bin";
   $("#orderList").innerHTML = orders.length ? orders.map(o => `
     <article class="card ${o.status === "New" ? "new" : ""}" data-oid="${o.id}">
       <div class="top"><div><b>#${o.id}</b> · ${esc(o.name)} · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div>
@@ -224,7 +230,8 @@ function renderOrders() {
       <div class="act"><a class="btn ghost sm" href="invoice?id=${o.id}&t=${esc(o.public_token)}" target="_blank" rel="noopener">Invoice / PDF</a><label class="muted">Status
         <select data-status ${trash ? "disabled" : ""}>${STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label>${trash ? `<button class="btn sm" data-restore>Restore order</button>` : `<button class="btn ghost sm danger" data-del>Delete</button>`}</div>
       <div class="note"><input data-note maxlength="500" placeholder="Private note" value="${esc(o.note)}"><button class="btn ghost sm" data-savenote>Save note</button></div>
-    </article>`).join("") : `<p class="muted">${trash ? "Trash is empty." : "No orders found."}</p>`;
+    </article>`).join("") : `<p class="muted">${trash ? "The recycle bin is empty." : "No orders found."}</p>`;
+  if (trash) $("#orderList").insertAdjacentHTML("afterbegin", `<p class="muted">Recycle bin – these orders are deleted. Press “Restore order” to bring one back.</p>`);
   $("#more").hidden = orders.length >= ordersTotal;
 }
 $("#orderList").addEventListener("change", e => {
@@ -265,6 +272,10 @@ $("#orderList").addEventListener("click", e => {
 $("#more").onclick = () => run(() => loadOrders(true));
 $("#refresh").onclick = () => run(refreshAll);
 $("#statusFilter").onchange = () => run(() => loadOrders());
+$("#bin").onclick = () => {
+  $("#statusFilter").value = $("#statusFilter").value === "Deleted" ? "" : "Deleted";
+  run(() => loadOrders());
+};
 let st; $("#search").oninput = () => { clearTimeout(st); st = setTimeout(() => run(() => loadOrders()), 300); };
 $("#export").onclick = () => run(async () => {
   const r = await fetch(API + "/api/admin/orders.csv", { headers: { Authorization: "Bearer " + getToken() } });
