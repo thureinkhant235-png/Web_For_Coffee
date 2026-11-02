@@ -109,7 +109,10 @@ const MIGRATIONS = [
 
   // Secret code so each customer can open only their own invoice.
   `ALTER TABLE orders
-     ADD COLUMN public_token TEXT NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', '');`
+     ADD COLUMN public_token TEXT NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', '');`,
+
+  // Deleted orders are only hidden, so they can be restored.
+  `ALTER TABLE orders ADD COLUMN deleted_at TIMESTAMPTZ;`
 ];
 
 async function migrate() {
@@ -342,10 +345,10 @@ app.get("/api/admin/me", (req, res) => res.json({ admin: isAdmin(req) }));
 // ----- Admin: dashboard numbers -----
 app.get("/api/admin/stats", requireAdmin, wrap(async () => {
   const [byStatus, all, today, low] = await Promise.all([
-    query("SELECT status, COUNT(*) AS n FROM orders GROUP BY status"),
-    query("SELECT COALESCE(SUM(total),0)::bigint AS s FROM orders WHERE status <> 'Cancelled'"),
+    query("SELECT status, COUNT(*) AS n FROM orders WHERE deleted_at IS NULL GROUP BY status"),
+    query("SELECT COALESCE(SUM(total),0)::bigint AS s FROM orders WHERE status <> 'Cancelled' AND deleted_at IS NULL"),
     query(`SELECT COUNT(*) AS n, COALESCE(SUM(total),0)::bigint AS s FROM orders
-           WHERE status <> 'Cancelled'
+           WHERE status <> 'Cancelled' AND deleted_at IS NULL
              AND created_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Yangon') AT TIME ZONE 'Asia/Yangon')`),
     query("SELECT COUNT(*) AS n FROM products WHERE active AND stock <= $1", [LOW_STOCK])
   ]);
@@ -362,7 +365,11 @@ app.get("/api/admin/stats", requireAdmin, wrap(async () => {
 app.get("/api/admin/orders", requireAdmin, wrap(async req => {
   const where = [], args = [];
   const add = v => (args.push(v), "$" + args.length);
-  if (STATUSES.includes(req.query.status)) where.push(`status = ${add(req.query.status)}`);
+  if (req.query.status === "Deleted") where.push("deleted_at IS NOT NULL");
+  else {
+    where.push("deleted_at IS NULL");
+    if (STATUSES.includes(req.query.status)) where.push(`status = ${add(req.query.status)}`);
+  }
   const term = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
   if (term) {
     const like = add("%" + term.replace(/[\\%_]/g, "\\$&") + "%");
@@ -380,7 +387,7 @@ app.get("/api/admin/orders", requireAdmin, wrap(async req => {
 
 app.get("/api/admin/orders.csv", requireAdmin, async (req, res, next) => {
   try {
-    const { rows } = await query("SELECT * FROM orders ORDER BY id DESC");
+    const { rows } = await query("    const { rows } = await query("SELECT * FROM orders WHERE deleted_at IS NULL ORDER BY id DESC"););
     const head = ["Order", "Date (UTC)", "Name", "Phone", "Address", "Payment", "Items", "Total (Ks)", "Status", "Note"];
     const lines = [head.join(",")].concat(rows.map(o => [
       o.id, o.created_at.toISOString(), csvCell(o.name), csvCell(o.phone, false), csvCell(o.addr), csvCell(o.pay),
@@ -407,7 +414,19 @@ app.patch("/api/admin/orders/:id", requireAdmin, wrap(async req => {
   }
   return { ok: true };
 }));
-
+// Delete = hide (can be undone). Restore = bring it back.
+app.delete("/api/admin/orders/:id", requireAdmin, wrap(async req => {
+  const id = int(req.params.id, 1, 2147483647, "Order id");
+  const r = await query("UPDATE orders SET deleted_at = now() WHERE id=$1 AND deleted_at IS NULL", [id]);
+  if (!r.rowCount) throw new HttpError(404, "Order not found");
+  return { ok: true };
+}));
+app.post("/api/admin/orders/:id/restore", requireAdmin, wrap(async req => {
+  const id = int(req.params.id, 1, 2147483647, "Order id");
+  const r = await query("UPDATE orders SET deleted_at = NULL WHERE id=$1 AND deleted_at IS NOT NULL", [id]);
+  if (!r.rowCount) throw new HttpError(404, "Order not found in trash");
+  return { ok: true };
+}));
 // ----- Admin: inventory -----
 app.get("/api/admin/products", requireAdmin, wrap(async () =>
   (await query("SELECT * FROM products ORDER BY id")).rows
