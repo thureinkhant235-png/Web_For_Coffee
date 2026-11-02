@@ -17,6 +17,8 @@ input,select,textarea{padding:9px 11px;border:1px solid var(--line);border-radiu
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
 .btn.sm{padding:6px 11px;font-size:13px}
 a.btn{text-decoration:none;display:inline-block}
+.btn.danger{color:var(--red);border-color:var(--red)}
+#undoBar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 8px 8px 18px;border-radius:99px;display:flex;gap:14px;align-items:center;z-index:100;box-shadow:0 6px 24px rgba(0,0,0,.3)}
 .btn:disabled{opacity:.5;cursor:default}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 /* login */
@@ -99,7 +101,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
       <div class="tools">
         <input id="search" type="search" placeholder="Search name, phone, address or order #">
         <select id="statusFilter" aria-label="Filter by status">
-          <option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option>
+          <option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option><option value="Deleted">Deleted (trash)</option>
         </select>
         <button class="btn ghost sm" id="refresh">Refresh</button>
         <button class="btn ghost sm" id="export">Export CSV</button>
@@ -119,6 +121,7 @@ main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
   </main>
 </div>
 <div id="toast" role="status"></div>
+<div id="undoBar" hidden><span id="undoText"></span><button class="btn sm" id="undoBtn">Undo</button></div>
 
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -210,6 +213,7 @@ async function loadOrders(append = false) {
   renderOrders();
 }
 function renderOrders() {
+  const trash = $("#statusFilter").value === "Deleted";
   $("#orderList").innerHTML = orders.length ? orders.map(o => `
     <article class="card ${o.status === "New" ? "new" : ""}" data-oid="${o.id}">
       <div class="top"><div><b>#${o.id}</b> · ${esc(o.name)} · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div>
@@ -218,9 +222,9 @@ function renderOrders() {
       <ul class="items">${o.items.map(i => `<li><span>${esc(i.name)} × ${i.qty}</span><span>${ks(i.price * i.qty)}</span></li>`).join("")}
         <li><b>Total</b><b>${ks(o.total)}</b></li></ul>
       <div class="act"><a class="btn ghost sm" href="invoice?id=${o.id}&t=${esc(o.public_token)}" target="_blank" rel="noopener">Invoice / PDF</a><label class="muted">Status
-        <select data-status>${STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
+        <select data-status ${trash ? "disabled" : ""}>${STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label>${trash ? `<button class="btn sm" data-restore>Restore order</button>` : `<button class="btn ghost sm danger" data-del>Delete</button>`}</div>
       <div class="note"><input data-note maxlength="500" placeholder="Private note" value="${esc(o.note)}"><button class="btn ghost sm" data-savenote>Save note</button></div>
-    </article>`).join("") : `<p class="muted">No orders found.</p>`;
+    </article>`).join("") : `<p class="muted">${trash ? "Trash is empty." : "No orders found."}</p>`;
   $("#more").hidden = orders.length >= ordersTotal;
 }
 $("#orderList").addEventListener("change", e => {
@@ -229,10 +233,34 @@ $("#orderList").addEventListener("change", e => {
   run(async () => { await api("/admin/orders/" + id, { method: "PATCH", body: { status: e.target.value } }); toast("Order updated"); })
     .finally(() => Promise.all([loadOrders(), loadStats(), loadProducts()]).catch(() => {}));
 });
+let undoTimer;
+function showUndo(id) {
+  $("#undoText").textContent = `Order #${id} deleted`;
+  $("#undoBar").dataset.id = id; $("#undoBar").hidden = false;
+  clearTimeout(undoTimer); undoTimer = setTimeout(() => { $("#undoBar").hidden = true; }, 10000);
+}
+async function restoreOrder(id) {
+  await api(`/admin/orders/${id}/restore`, { method: "POST", body: {} });
+  toast(`Order #${id} restored`);
+  await Promise.all([loadOrders(), loadStats()]);
+}
+$("#undoBtn").onclick = () => {
+  const id = $("#undoBar").dataset.id;
+  $("#undoBar").hidden = true; clearTimeout(undoTimer);
+  run(() => restoreOrder(id));
+};
 $("#orderList").addEventListener("click", e => {
-  if (!e.target.matches("[data-savenote]")) return;
-  const card = e.target.closest("[data-oid]");
-  run(async () => { await api("/admin/orders/" + card.dataset.oid, { method: "PATCH", body: { note: card.querySelector("[data-note]").value } }); toast("Note saved"); });
+  const card = e.target.closest("[data-oid]"); if (!card) return;
+  const id = card.dataset.oid;
+  if (e.target.matches("[data-del]"))
+    return run(async () => {
+      await api("/admin/orders/" + id, { method: "DELETE", body: {} });
+      showUndo(id);
+      await Promise.all([loadOrders(), loadStats()]);
+    });
+  if (e.target.matches("[data-restore]")) return run(() => restoreOrder(id));
+  if (e.target.matches("[data-savenote]"))
+    run(async () => { await api("/admin/orders/" + id, { method: "PATCH", body: { note: card.querySelector("[data-note]").value } }); toast("Note saved"); });
 });
 $("#more").onclick = () => run(() => loadOrders(true));
 $("#refresh").onclick = () => run(refreshAll);
