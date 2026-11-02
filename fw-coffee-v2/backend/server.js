@@ -387,7 +387,7 @@ app.get("/api/admin/orders", requireAdmin, wrap(async req => {
 
 app.get("/api/admin/orders.csv", requireAdmin, async (req, res, next) => {
   try {
-    const { rows } = await query("    const { rows } = await query("SELECT * FROM orders WHERE deleted_at IS NULL ORDER BY id DESC"););
+    const { rows } = await query("SELECT * FROM orders WHERE deleted_at IS NULL ORDER BY id DESC");
     const head = ["Order", "Date (UTC)", "Name", "Phone", "Address", "Payment", "Items", "Total (Ks)", "Status", "Note"];
     const lines = [head.join(",")].concat(rows.map(o => [
       o.id, o.created_at.toISOString(), csvCell(o.name), csvCell(o.phone, false), csvCell(o.addr), csvCell(o.pay),
